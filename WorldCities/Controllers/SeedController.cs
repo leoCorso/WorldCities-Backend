@@ -1,5 +1,6 @@
 ﻿using System.Runtime;
 using System.Security;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -12,6 +13,7 @@ namespace WorldCities.Controllers
 {
     [Route("api/[controller]/[action]")]
     [ApiController]
+    [Authorize(Roles = "Administrator")]
     public class SeedController : ControllerBase
     {
         private readonly ApplicationDbContext _context;
@@ -131,7 +133,57 @@ namespace WorldCities.Controllers
         [HttpGet]
         public async Task<ActionResult> CreateDefaultUsers()
         {
-            throw new NotImplementedException();
+            var registeredUser = "RegisteredUser";
+            var adminUser = "AdminUser";
+
+            if(await _roleManager.FindByNameAsync(registeredUser) == null)
+            {
+                await _roleManager.CreateAsync(new IdentityRole(registeredUser));
+            }
+            if (await _roleManager.FindByNameAsync(adminUser) == null)
+            {
+                await _roleManager.CreateAsync(new IdentityRole(adminUser));
+            }
+            var addedUserList = new List<ApplicationUser>();
+            var emailAdmin = "admin@email.com";
+            if(await _userManager.FindByNameAsync(emailAdmin) == null)
+            {
+                var admin = new ApplicationUser
+                {
+                    SecurityStamp = Guid.NewGuid().ToString(),
+                    UserName = emailAdmin,
+                    Email = emailAdmin
+                };
+                await _userManager.CreateAsync(admin, _configuration["DefaultPassword:Administrator"]!);
+                await _userManager.AddToRolesAsync(admin, [registeredUser, adminUser]);
+                admin.EmailConfirmed = true;
+                admin.LockoutEnabled = false;
+                addedUserList.Add(admin);
+            }
+            var emailUser = "user@email.com";
+            if(await _userManager.FindByNameAsync(emailUser) == null)
+            {
+                var user = new ApplicationUser
+                {
+                    SecurityStamp = Guid.NewGuid().ToString(),
+                    UserName = emailUser,
+                    Email = emailUser
+                };
+                await _userManager.CreateAsync(user, _configuration["DefaultPassword:RegisteredUser"]!);
+                await _userManager.AddToRoleAsync(user, registeredUser);
+                user.EmailConfirmed = true;
+                user.LockoutEnabled = false;
+                addedUserList.Add(user);
+            }
+            if(addedUserList.Count > 0)
+            {
+                await _context.SaveChangesAsync();
+            }
+            return new JsonResult(new
+            {
+                Count = addedUserList.Count,
+                Users = addedUserList
+            });
         }
     }
 }
