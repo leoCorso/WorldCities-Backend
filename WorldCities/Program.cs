@@ -8,6 +8,7 @@ using WorldCities.Data.Models;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
+using WorldCities;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -36,10 +37,11 @@ builder.Services.AddCors(options =>
         {
             builder.WithOrigins("http://localhost:4200")
                 .AllowAnyHeader()
-                .AllowAnyMethod();
+                .AllowAnyMethod()
+                .AllowCredentials();
         });
 });
-
+builder.Services.AddSignalR();
 builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
 {
     options.SignIn.RequireConfirmedAccount = true;
@@ -50,6 +52,7 @@ builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
     options.Password.RequiredLength = 8;
 })
 .AddEntityFrameworkStores<ApplicationDbContext>();
+
 
 builder.Services.AddScoped<JwtHandler>();
 
@@ -69,6 +72,19 @@ builder.Services.AddAuthentication(options =>
         ValidIssuer = builder.Configuration["JwtSettings:Issuer"],
         ValidAudience = builder.Configuration["JwtSettings:Audience"],
         IssuerSigningKey = new SymmetricSecurityKey(System.Text.Encoding.UTF8.GetBytes(builder.Configuration["JwtSettings:SecurityKey"]!))
+    };
+    options.Events = new JwtBearerEvents // Extract bearer token from access_token query param and utilized in signalR
+    {
+        OnMessageReceived = context =>
+        {
+            var accessToken = context.Request.Query["access_token"];
+            if (!string.IsNullOrEmpty(accessToken))
+            {
+                // Read the token out of the query string
+                context.Token = accessToken;
+            }
+            return Task.CompletedTask;
+        }
     };
 });
 
@@ -90,6 +106,7 @@ app.UseHttpsRedirection();
 app.UseAuthentication();
 app.UseAuthorization();
 
+app.MapHub<HubTest>("api/test-hub");
 app.MapControllers();
 
 app.Run();
