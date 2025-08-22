@@ -32,10 +32,10 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 });
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowLocalHost",
-        builder =>
+    options.AddPolicy("AllowAny",
+        config =>
         {
-            builder.WithOrigins("http://localhost:4200")
+            config.WithOrigins(builder.Configuration["AllowedCORS"]!.Split(';', StringSplitOptions.RemoveEmptyEntries))
                 .AllowAnyHeader()
                 .AllowAnyMethod()
                 .AllowCredentials();
@@ -92,7 +92,7 @@ var app = builder.Build();
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
-    app.UseCors("AllowLocalHost");
+    app.UseCors("AllowAny");
     app.UseSwagger();
     app.UseSwaggerUI();
 }
@@ -108,5 +108,7 @@ app.UseAuthorization();
 
 app.MapHub<HubTest>("api/test-hub");
 app.MapControllers();
+app.MapMethods("api/heartbeat", new[] { "HEAD" },
+    () => Results.Ok());
 
 app.Run();
