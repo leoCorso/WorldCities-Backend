@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using WorldCities;
+using WorldCities.Data.GraphQL;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -55,6 +56,12 @@ builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
 
 
 builder.Services.AddScoped<JwtHandler>();
+builder.Services.AddGraphQLServer()
+    .AddAuthorization()
+    .AddQueryType<Query>()
+    .AddMutationType<Mutation>()
+    .AddFiltering()
+    .AddSorting();
 
 builder.Services.AddAuthentication(options =>
 {
@@ -108,6 +115,8 @@ app.UseAuthorization();
 
 app.MapHub<HubTest>("api/test-hub");
 app.MapControllers();
+app.MapGraphQL("/api/graphql");
+
 app.MapMethods("api/heartbeat", new[] { "HEAD" },
     () => Results.Ok());
 
