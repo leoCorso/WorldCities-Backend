@@ -10,6 +10,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using WorldCities;
 using WorldCities.Data.GraphQL;
+using HotChocolate.Types.Pagination;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -60,6 +61,10 @@ builder.Services.AddGraphQLServer()
     .AddAuthorization()
     .AddQueryType<Query>()
     .AddMutationType<Mutation>()
+    .SetPagingOptions(new PagingOptions
+    {
+        IncludeTotalCount = true
+    })
     .AddFiltering()
     .AddSorting();
 
