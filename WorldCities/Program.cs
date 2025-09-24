@@ -32,12 +32,15 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 {
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"));
 });
+var allowedCORS = builder.Configuration.GetSection("AllowedCORS").Get<string[]>() ?? Array.Empty<string>();
+
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowAny",
+    options.AddPolicy("CORSPOLICY",
         config =>
         {
-            config.WithOrigins(builder.Configuration["AllowedCORS"]!.Split(';', StringSplitOptions.RemoveEmptyEntries))
+            config
+                .WithOrigins(allowedCORS)
                 .AllowAnyHeader()
                 .AllowAnyMethod()
                 .AllowCredentials();
@@ -101,12 +104,18 @@ builder.Services.AddAuthentication(options =>
 });
 
 var app = builder.Build();
+app.UseCors("CORSPOLICY");
+
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
-    app.UseCors("AllowAny");
     app.UseSwagger();
     app.UseSwaggerUI();
+}
+else
+{
+    app.UseExceptionHandler("/Error"); // Changes from default Dev exception which outputs stack traces
+    app.MapGet("/Error", () => Results.Problem());
 }
 ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
 

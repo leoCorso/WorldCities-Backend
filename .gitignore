@@ -5,6 +5,8 @@
 
 # dotenv files
 .env
+# Prodction config
+appsettings.production.json
 
 # User-specific files
 *.rsuser
